@@ -74,14 +74,16 @@ public class Receiver {
     }
 
     private void terminate() throws IOException {
-        Packet finAck = new Packet(0, expectedSeq, System.nanoTime(), false, true, true, new byte[0]);
-        // sendPacket(null);
-        sendPacket(finAck, null);
-        log("snd", finAck, "AF");
+        if (lastReceived != null) {
+            Packet finAck = new Packet(0, expectedSeq, System.nanoTime(), false, true, true, new byte[0]);
+            // sendPacket(null);
+            sendPacket(finAck, lastReceived);
+            log("snd", finAck, "AF");
 
-        Packet finalAck = receivePacket();
-        if (finalAck.ACK) {
-            log("rcv", finalAck, "A");
+            Packet finalAck = receivePacket();
+            if (finalAck.ACK) {
+                log("rcv", finalAck, "A");
+            }
         }
 
         fileOutput.close();
@@ -138,4 +140,5 @@ public class Receiver {
     private void log(String dir, Packet pkt, String flags) {
         System.out.printf("%s %.3f %s %d %d %d%n", dir, Utils.now(), flags, pkt.seq, pkt.data.length, pkt.ack);
     }
-}
+} 
+
