@@ -34,7 +34,7 @@ public class Receiver {
                 // log("snd", synAck, "SA");
 
                 Packet synAck = new Packet(0, expectedSeq, System.nanoTime(), true, false, true, new byte[0]);
-                sendPacket(synAck, pkt);  // send syn ack
+                sendPacket(synAck, lastReceived);  // send syn ack
                 log("snd", synAck, "SA");
             } else if (pkt.ACK && !pkt.SYN && !pkt.FIN) {
                 log("rcv", pkt, "A");
