@@ -36,8 +36,13 @@ public class Sender {
         sendPacket(syn);
         log("snd", syn, "S");
 
+        System.out.println("waiting for SYN-ACK");
+
         while (true) {
             Packet resp = receivePacket();
+            
+            System.out.println("recoeved packet: flags = " + resp.SYN + "," + resp.ACK);
+
             if (resp.SYN && resp.ACK) {
                 log("rcv", resp, "SA");
                 Packet ack = new Packet(++seq, resp.seq + 1, System.nanoTime(), false, false, true, new byte[0]);
