@@ -68,7 +68,7 @@ public class Receiver {
 
             Packet ack = new Packet(0, expectedSeq, pkt.timestamp, false, false, true, new byte[0]);
             // sendPacket(pkt);
-            sendPacket(ack, pkt);
+            sendPacket(ack, lastReceived);
             log("snd", ack, "A");
         }
     }
