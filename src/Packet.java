@@ -63,9 +63,6 @@ public class Packet {
         boolean FIN = (flags & 0b010) != 0;
         boolean ACK = (flags & 0b001) != 0;
 
-        Packet p = new Packet(seq, ack, timestamp, SYN, FIN, ACK, data);
-
-
         byte[] data = new byte[dataLen];
         buffer.get(data);
 

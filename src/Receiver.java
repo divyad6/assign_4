@@ -34,7 +34,7 @@ public class Receiver {
                 // log("snd", synAck, "SA");
 
                 Packet synAck = new Packet(0, expectedSeq, System.nanoTime(), true, false, true, new byte[0]);
-                sendPacket(synAck, lastReceived);  // send syn ack
+                sendPacket(synAck, pkt);  // send syn ack
                 log("snd", synAck, "SA");
             } else if (pkt.ACK && !pkt.SYN && !pkt.FIN) {
                 log("rcv", pkt, "A");
@@ -67,14 +67,16 @@ public class Receiver {
             }
 
             Packet ack = new Packet(0, expectedSeq, pkt.timestamp, false, false, true, new byte[0]);
-            sendPacket(pkt);
+            // sendPacket(pkt);
+            sendPacket(ack, pkt);
             log("snd", ack, "A");
         }
     }
 
     private void terminate() throws IOException {
         Packet finAck = new Packet(0, expectedSeq, System.nanoTime(), false, true, true, new byte[0]);
-        sendPacket(null);
+        // sendPacket(null);
+        sendPacket(finAck, null);
         log("snd", finAck, "AF");
 
         Packet finalAck = receivePacket();
