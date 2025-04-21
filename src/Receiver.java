@@ -81,19 +81,24 @@ public class Receiver {
         fileOutput.close();
     }
 
+    private DatagramPacket lastReceived;
+
     private Packet receivePacket() throws IOException {
         byte[] buf = new byte[mtu + 100];
-        DatagramPacket dp = new DatagramPacket(buf, buf.length);
-        socket.receive(dp);
-        return Packet.decode(dp.getData());
+        lastReceived = new DatagramPacket(buf, buf.length);
+        socket.receive(lastReceived);
+        return Packet.decode(lastReceived.getData());
     }
 
-    private void sendPacket(Packet pkt, Packet original) throws IOException {
-        InetAddress addr = (original != null) ? InetAddress.getByName("localhost") : InetAddress.getLocalHost();
-        int port = (original != null) ? original.encode().length : socket.getLocalPort();
+    private void sendPacket(Packet pkt) throws IOException {
+        if (lastReceived == null) return;
+
+        InetAddress addr = lastReceived.getAddress();
+        int port = lastReceived.getPort();  // THIS is key
         byte[] raw = pkt.encode();
         socket.send(new DatagramPacket(raw, raw.length, addr, port));
     }
+
 
     private void log(String dir, Packet pkt, String flags) {
         System.out.printf("%s %.3f %s %d %d %d%n", dir, Utils.now(), flags, pkt.seq, pkt.data.length, pkt.ack);
