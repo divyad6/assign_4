@@ -30,7 +30,7 @@ public class Receiver {
                 expectedSeq = pkt.seq + 1;
 
                 Packet synAck = new Packet(0, expectedSeq, System.nanoTime(), true, false, true, new byte[0]);
-                sendPacket(synAck, pkt);
+                sendPacket(pkt);
                 log("snd", synAck, "SA");
             } else if (pkt.ACK && !pkt.SYN && !pkt.FIN) {
                 log("rcv", pkt, "A");
@@ -63,14 +63,14 @@ public class Receiver {
             }
 
             Packet ack = new Packet(0, expectedSeq, pkt.timestamp, false, false, true, new byte[0]);
-            sendPacket(ack, pkt);
+            sendPacket(pkt);
             log("snd", ack, "A");
         }
     }
 
     private void terminate() throws IOException {
         Packet finAck = new Packet(0, expectedSeq, System.nanoTime(), false, true, true, new byte[0]);
-        sendPacket(finAck, null);
+        sendPacket(null);
         log("snd", finAck, "AF");
 
         Packet finalAck = receivePacket();
@@ -80,6 +80,20 @@ public class Receiver {
 
         fileOutput.close();
     }
+
+    // private Packet receivePacket() throws IOException {
+    //     byte[] buf = new byte[mtu + 100];
+    //     DatagramPacket dp = new DatagramPacket(buf, buf.length);
+    //     socket.receive(dp);
+    //     return Packet.decode(dp.getData());
+    // }
+
+    // private void sendPacket(Packet pkt, Packet original) throws IOException {
+    //     InetAddress addr = (original != null) ? InetAddress.getByName("localhost") : InetAddress.getLocalHost();
+    //     int port = (original != null) ? original.encode().length : socket.getLocalPort();
+    //     byte[] raw = pkt.encode();
+    //     socket.send(new DatagramPacket(raw, raw.length, addr, port));
+    // }
 
     private DatagramPacket lastReceived;
 
@@ -98,7 +112,14 @@ public class Receiver {
         byte[] raw = pkt.encode();
         socket.send(new DatagramPacket(raw, raw.length, addr, port));
     }
+    
 
+    // private void sendPacket(Packet pkt, DatagramPacket received) throws IOException {
+    //     byte[] raw = pkt.encode();
+    //     InetAddress addr = received.getAddress();
+    //     int port = received.getPort();
+    //     socket.send(new DatagramPacket(raw, raw.length, addr, port));
+    // }
 
     private void log(String dir, Packet pkt, String flags) {
         System.out.printf("%s %.3f %s %d %d %d%n", dir, Utils.now(), flags, pkt.seq, pkt.data.length, pkt.ack);
