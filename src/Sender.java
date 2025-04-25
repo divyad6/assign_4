@@ -36,7 +36,7 @@ public class Sender {
         sendPacket(syn);
         log("snd", syn, "S");
 
-        System.out.println("waiting for SYN-ACK");
+        System.out.println("waiting for SYN-ACK"); // this is where we are stuck !! 
 
         while (true) {
             Packet resp = receivePacket();
@@ -152,6 +152,9 @@ public class Sender {
         byte[] buf = new byte[mtu + 100]; // enough for headers
         DatagramPacket dp = new DatagramPacket(buf, buf.length);
         socket.receive(dp);
+
+        System.out.println("raw packet received on h1: length=" + dp.getLength());
+        
         return Packet.decode(dp.getData());
     }
 

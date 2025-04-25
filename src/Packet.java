@@ -59,10 +59,14 @@ public class Packet {
         int dataLen = lenFlags >>> 3;
         int flags = lenFlags & 0x7;
 
+        boolean SYN = (flags & 0b100) != 0;
+        boolean FIN = (flags & 0b010) != 0;
+        boolean ACK = (flags & 0b001) != 0;
+
         byte[] data = new byte[dataLen];
         buffer.get(data);
 
-        Packet p = new Packet(seq, ack, timestamp, (flags & 0x4) > 0, (flags & 0x2) > 0, (flags & 0x1) > 0, data);
+        Packet p = new Packet(seq, ack, timestamp, SYN, FIN, ACK, data);
         p.checksum = checksum;
         return p;
     }
