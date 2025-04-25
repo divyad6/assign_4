@@ -55,8 +55,7 @@ public class Sender {
     }
 
     private int sendData() throws IOException {
-        // int lastAck = -1;
-        int lastAck = 0;
+        int lastAck = -1;
         int dupAckCount = 0;
         byte[] buffer = new byte[mtu];
         int read;
@@ -95,7 +94,6 @@ public class Sender {
                                 break;
                             }
                         }
-                        
                         if (toResend != null) {
                             sendPacket(toResend);
                             log("snd", toResend, "AD");
