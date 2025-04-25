@@ -37,12 +37,12 @@ public class Sender {
         sendPacket(syn);
         log("snd", syn, "S");
 
-        System.out.println("waiting for SYN-ACK"); // this is where we are stuck !! 
+        System.out.println("waiting for SYN-ACK"); 
 
         while (true) {
             Packet resp = receivePacket();
             
-            System.out.println("recoeved packet: flags = " + resp.SYN + "," + resp.ACK);
+            // System.out.println("recoeved packet: flags = " + resp.SYN + "," + resp.ACK);
 
             if (resp.SYN && resp.ACK) {
                 log("rcv", resp, "SA");
@@ -105,7 +105,7 @@ public class Sender {
                     lastAck = ackNum;
                 }
     
-                // Remove acknowledged packets
+                // remove acknowledged packets
                 Iterator<Map.Entry<Integer, Packet>> iter = unackedPackets.entrySet().iterator();
                 while (iter.hasNext()) {
                     Map.Entry<Integer, Packet> entry = iter.next();
@@ -124,7 +124,7 @@ public class Sender {
             }
         }
     
-        return nextSeq;  // Return final sequence number
+        return nextSeq;  // ret final seq number
     }
     
 

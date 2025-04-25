@@ -9,12 +9,12 @@ public class Utils {
     }
 
     public static long updateTimeout(long sentTime, long ackTime, boolean isFirstAck) {
-        long sampleRTT = ackTime - sentTime;
+        long testRTT = ackTime - sentTime;
         if (isFirstAck) {
-            ERTT = sampleRTT;
+            ERTT = testRTT;
             EDEV = 0;
         } else {
-            double SRTT = sampleRTT;
+            double SRTT = testRTT;
             double SDEV = Math.abs(SRTT - ERTT);
             ERTT = ALPHA * ERTT + (1 - ALPHA) * SRTT;
             EDEV = BETA * EDEV + (1 - BETA) * SDEV;
