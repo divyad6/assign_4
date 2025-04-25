@@ -46,22 +46,16 @@ public class Receiver {
     private void receiveData() throws IOException {
         while (true) {
             Packet pkt = receivePacket();
+            
+            if (pkt.FIN) {
+                log("rcv", pkt, "F");
+                expectedSeq = pkt.seq + 1;
+                break;
+            }
 
             if (!pkt.isValidChecksum(pkt.encode())) {
                 // bad checksum
                 continue;
-            }
-
-            if (pkt.FIN) {
-                log("rcv", pkt, "F");
-                if (pkt.seq == expectedSeq) {
-                    expectedSeq = pkt.seq + 1;
-                    break;
-                } else {
-                    // FIN arrived but missing data, ignore
-                    System.out.println("FIN received early, missing data, ignoring...");
-                    continue;
-                }
             }
 
             if (pkt.seq == expectedSeq) {

@@ -58,18 +58,20 @@ public class Sender {
         int lastAck = 0;
         int dupAckCount = 0;
         byte[] buffer = new byte[mtu];
-        int read;
+        int read = fileInput.read(buffer);
         int base = seq;
         int nextSeq = seq;
     
-        while ((read = fileInput.read(buffer)) != -1 || !unackedPackets.isEmpty()) {
-            while (unackedPackets.size() < sws && read != -1) {
+        while (read != -1 || !unackedPackets.isEmpty()) {
+            // Send as much as window allows
+            while ((nextSeq - base) < sws && read != -1) {
                 byte[] data = Arrays.copyOf(buffer, read);
                 Packet pkt = new Packet(nextSeq, 0, System.nanoTime(), false, false, true, data);
                 unackedPackets.put(nextSeq, pkt);
                 sendTimestamps.put(nextSeq, pkt.timestamp);
                 sendPacket(pkt);
                 log("snd", pkt, "AD");
+    
                 nextSeq += data.length;
                 read = fileInput.read(buffer);
             }
@@ -81,22 +83,18 @@ public class Sender {
     
                 log("rcv", ackPkt, "A");
                 int ackNum = ackPkt.ack;
-                
+    
                 if (ackNum == lastAck) {
                     dupAckCount++;
                     if (dupAckCount == 3) {
-                        // Packet toResend = unackedPackets.get(ackNum);
-
-                        // Packet toResend = null;
-                        // for (Map.Entry<Integer, Packet> entry : unackedPackets.entrySet()) {
-                        //     if (entry.getKey() < ackNum) {
-                        //         toResend = entry.getValue();
-                        //         break;
-                        //     }
-                        // }
-                        
-                        Packet toResend = unackedPackets.get(ackNum);
-
+                        // Fast retransmit
+                        Packet toResend = null;
+                        for (Map.Entry<Integer, Packet> entry : unackedPackets.entrySet()) {
+                            if (entry.getKey() < ackNum) {
+                                toResend = entry.getValue();
+                                break;
+                            }
+                        }
                         if (toResend != null) {
                             sendPacket(toResend);
                             log("snd", toResend, "AD (fast retransmit)");
@@ -107,10 +105,7 @@ public class Sender {
                     lastAck = ackNum;
                 }
     
-                long sentTime = sendTimestamps.getOrDefault(base, 0L);
-                timeout = Utils.updateTimeout(sentTime, System.nanoTime(), firstAck);
-                firstAck = false;
-    
+                // Remove acknowledged packets
                 Iterator<Map.Entry<Integer, Packet>> iter = unackedPackets.entrySet().iterator();
                 while (iter.hasNext()) {
                     Map.Entry<Integer, Packet> entry = iter.next();
@@ -119,31 +114,7 @@ public class Sender {
                     }
                 }
                 base = ackNum;
-            } catch (SocketTimeoutException e) {
-                if (!unackedPackets.isEmpty()) {
-                    Packet pkt = unackedPackets.values().iterator().next();
-                    sendPacket(pkt);
-                    log("snd", pkt, "AD");
-                }
-            }
-        }
-
-        while (!unackedPackets.isEmpty()) {
-            try {
-                socket.setSoTimeout((int) (timeout / 1_000_000));
-                Packet ackPkt = receivePacket();
-                if (!ackPkt.isValidChecksum(ackPkt.encode())) continue;
-        
-                log("rcv", ackPkt, "A");
-                int ackNum = ackPkt.ack;
-        
-                Iterator<Map.Entry<Integer, Packet>> iter = unackedPackets.entrySet().iterator();
-                while (iter.hasNext()) {
-                    Map.Entry<Integer, Packet> entry = iter.next();
-                    if (entry.getKey() + entry.getValue().data.length <= ackNum) {
-                        iter.remove();
-                    }
-                }
+    
             } catch (SocketTimeoutException e) {
                 if (!unackedPackets.isEmpty()) {
                     Packet pkt = unackedPackets.values().iterator().next();
@@ -153,8 +124,9 @@ public class Sender {
             }
         }
     
-        return nextSeq;  // return the final nextSeq
-    }    
+        return nextSeq;  // Return final sequence number
+    }
+    
 
     private void terminate() throws IOException {
         Packet fin = new Packet(seq, 0, System.nanoTime(), false, true, false, new byte[0]);
