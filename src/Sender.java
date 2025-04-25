@@ -27,9 +27,10 @@ public class Sender {
 
     public void start() throws IOException {
         handshake();
-        sendData();
+        seq = sendData(); // update global seq
         terminate();
     }
+    
 
     private void handshake() throws IOException {
         Packet syn = new Packet(seq, 0, System.nanoTime(), true, false, false, new byte[0]);
@@ -53,16 +54,14 @@ public class Sender {
         }
     }
 
-    private void sendData() throws IOException {
-
+    private int sendData() throws IOException {
         int lastAck = -1;
         int dupAckCount = 0;
-
         byte[] buffer = new byte[mtu];
         int read;
         int base = seq;
         int nextSeq = seq;
-
+    
         while ((read = fileInput.read(buffer)) != -1 || !unackedPackets.isEmpty()) {
             while (unackedPackets.size() < sws && read != -1) {
                 byte[] data = Arrays.copyOf(buffer, read);
@@ -74,49 +73,42 @@ public class Sender {
                 nextSeq += data.length;
                 read = fileInput.read(buffer);
             }
-
-            // Wait for ACKs or handle timeouts
+    
             socket.setSoTimeout((int) (timeout / 1_000_000));
             try {
                 Packet ackPkt = receivePacket();
                 if (!ackPkt.isValidChecksum(ackPkt.encode())) continue;
-
+    
                 log("rcv", ackPkt, "A");
                 int ackNum = ackPkt.ack;
                 
                 if (ackNum == lastAck) {
                     dupAckCount++;
-                    System.out.println("🔁 Duplicate ACK: " + ackNum + " (" + dupAckCount + ")");
-
                     if (dupAckCount == 3) {
-                        // Fast retransmit
                         Packet toResend = unackedPackets.get(ackNum);
                         if (toResend != null) {
                             sendPacket(toResend);
-                            log("snd", toResend, "AD");  // indicate retransmission
-                            System.out.println("🚀 Fast retransmit of packet: " + ackNum);
+                            log("snd", toResend, "AD");
                         }
                     }
                 } else {
                     dupAckCount = 1;
                     lastAck = ackNum;
                 }
-                
+    
                 long sentTime = sendTimestamps.getOrDefault(base, 0L);
                 timeout = Utils.updateTimeout(sentTime, System.nanoTime(), firstAck);
                 firstAck = false;
-
+    
                 Iterator<Map.Entry<Integer, Packet>> iter = unackedPackets.entrySet().iterator();
                 while (iter.hasNext()) {
                     Map.Entry<Integer, Packet> entry = iter.next();
                     if (entry.getKey() + entry.getValue().data.length <= ackNum) {
                         iter.remove();
                     }
-                    base = ackNum;
                 }
                 base = ackNum;
             } catch (SocketTimeoutException e) {
-                // Timeout -> retransmit oldest packet
                 if (!unackedPackets.isEmpty()) {
                     Packet pkt = unackedPackets.values().iterator().next();
                     sendPacket(pkt);
@@ -124,7 +116,9 @@ public class Sender {
                 }
             }
         }
-    }
+    
+        return nextSeq;  // return the final nextSeq
+    }    
 
     private void terminate() throws IOException {
         Packet fin = new Packet(seq, 0, System.nanoTime(), false, true, false, new byte[0]);
