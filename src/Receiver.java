@@ -65,7 +65,7 @@ public class Receiver {
                 // out of order packet — discard, but ACK expectedSeq
                 log("rcv", pkt, "AD (out-of-order)");
                 Packet dupAck = new Packet(0, expectedSeq, pkt.timestamp, false, false, true, new byte[0]);
-                sendPacket(dupAck, pkt);
+                sendPacket(dupAck, lastReceived);
                 log("snd", dupAck, "A (dup)");
             }
 
