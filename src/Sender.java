@@ -54,6 +54,10 @@ public class Sender {
     }
 
     private void sendData() throws IOException {
+
+        int lastAck = -1;
+        int dupAckCount = 0;
+
         byte[] buffer = new byte[mtu];
         int read;
         int base = seq;
@@ -79,6 +83,25 @@ public class Sender {
 
                 log("rcv", ackPkt, "A");
                 int ackNum = ackPkt.ack;
+                
+                if (ackNum == lastAck) {
+                    dupAckCount++;
+                    System.out.println("🔁 Duplicate ACK: " + ackNum + " (" + dupAckCount + ")");
+
+                    if (dupAckCount == 3) {
+                        // Fast retransmit
+                        Packet toResend = unackedPackets.get(ackNum);
+                        if (toResend != null) {
+                            sendPacket(toResend);
+                            log("snd", toResend, "AD");  // indicate retransmission
+                            System.out.println("🚀 Fast retransmit of packet: " + ackNum);
+                        }
+                    }
+                } else {
+                    dupAckCount = 1;
+                    lastAck = ackNum;
+                }
+                
                 long sentTime = sendTimestamps.getOrDefault(base, 0L);
                 timeout = Utils.updateTimeout(sentTime, System.nanoTime(), firstAck);
                 firstAck = false;
@@ -89,6 +112,7 @@ public class Sender {
                     if (entry.getKey() + entry.getValue().data.length <= ackNum) {
                         iter.remove();
                     }
+                    base = ackNum;
                 }
                 base = ackNum;
             } catch (SocketTimeoutException e) {
