@@ -127,6 +127,31 @@ public class Sender {
                 }
             }
         }
+
+        while (!unackedPackets.isEmpty()) {
+            try {
+                socket.setSoTimeout((int) (timeout / 1_000_000));
+                Packet ackPkt = receivePacket();
+                if (!ackPkt.isValidChecksum(ackPkt.encode())) continue;
+        
+                log("rcv", ackPkt, "A");
+                int ackNum = ackPkt.ack;
+        
+                Iterator<Map.Entry<Integer, Packet>> iter = unackedPackets.entrySet().iterator();
+                while (iter.hasNext()) {
+                    Map.Entry<Integer, Packet> entry = iter.next();
+                    if (entry.getKey() + entry.getValue().data.length <= ackNum) {
+                        iter.remove();
+                    }
+                }
+            } catch (SocketTimeoutException e) {
+                if (!unackedPackets.isEmpty()) {
+                    Packet pkt = unackedPackets.values().iterator().next();
+                    sendPacket(pkt);
+                    log("snd", pkt, "AD (timeout resend)");
+                }
+            }
+        }
     
         return nextSeq;  // return the final nextSeq
     }    
