@@ -55,7 +55,8 @@ public class Sender {
     }
 
     private int sendData() throws IOException {
-        int lastAck = -1;
+        // int lastAck = -1;
+        int lastAck = 0;
         int dupAckCount = 0;
         byte[] buffer = new byte[mtu];
         int read;
@@ -85,7 +86,16 @@ public class Sender {
                 if (ackNum == lastAck) {
                     dupAckCount++;
                     if (dupAckCount == 3) {
-                        Packet toResend = unackedPackets.get(ackNum);
+                        // Packet toResend = unackedPackets.get(ackNum);
+
+                        Packet toResend = null;
+                        for (Map.Entry<Integer, Packet> entry : unackedPackets.entrySet()) {
+                            if (entry.getKey() < ackNum) {
+                                toResend = entry.getValue();
+                                break;
+                            }
+                        }
+                        
                         if (toResend != null) {
                             sendPacket(toResend);
                             log("snd", toResend, "AD");
