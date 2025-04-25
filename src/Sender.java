@@ -55,7 +55,7 @@ public class Sender {
     }
 
     private int sendData() throws IOException {
-        int lastAck = -1;
+        int lastAck = 0;
         int dupAckCount = 0;
         byte[] buffer = new byte[mtu];
         int read;
@@ -65,7 +65,7 @@ public class Sender {
         while ((read = fileInput.read(buffer)) != -1 || !unackedPackets.isEmpty()) {
             while (unackedPackets.size() < sws && read != -1) {
                 byte[] data = Arrays.copyOf(buffer, read);
-                Packet pkt = new Packet(nextSeq, 0, System.nanoTime(), false, false, true, data);
+                Packet pkt = new Packet(nextSeq, lastAck, System.nanoTime(), false, false, true, data);
                 unackedPackets.put(nextSeq, pkt);
                 sendTimestamps.put(nextSeq, pkt.timestamp);
                 sendPacket(pkt);
@@ -87,16 +87,19 @@ public class Sender {
                     if (dupAckCount == 3) {
                         // Packet toResend = unackedPackets.get(ackNum);
 
-                        Packet toResend = null;
-                        for (Map.Entry<Integer, Packet> entry : unackedPackets.entrySet()) {
-                            if (entry.getKey() < ackNum) {
-                                toResend = entry.getValue();
-                                break;
-                            }
-                        }
+                        // Packet toResend = null;
+                        // for (Map.Entry<Integer, Packet> entry : unackedPackets.entrySet()) {
+                        //     if (entry.getKey() < ackNum) {
+                        //         toResend = entry.getValue();
+                        //         break;
+                        //     }
+                        // }
+                        
+                        Packet toResend = unackedPackets.get(ackNum);
+
                         if (toResend != null) {
                             sendPacket(toResend);
-                            log("snd", toResend, "AD");
+                            log("snd", toResend, "AD (fast retransmit)");
                         }
                     }
                 } else {
