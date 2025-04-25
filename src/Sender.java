@@ -65,7 +65,7 @@ public class Sender {
         while ((read = fileInput.read(buffer)) != -1 || !unackedPackets.isEmpty()) {
             while (unackedPackets.size() < sws && read != -1) {
                 byte[] data = Arrays.copyOf(buffer, read);
-                Packet pkt = new Packet(nextSeq, lastAck, System.nanoTime(), false, false, true, data);
+                Packet pkt = new Packet(nextSeq, 0, System.nanoTime(), false, false, true, data);
                 unackedPackets.put(nextSeq, pkt);
                 sendTimestamps.put(nextSeq, pkt.timestamp);
                 sendPacket(pkt);
